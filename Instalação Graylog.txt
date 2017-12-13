@@ -1,0 +1,160 @@
+Montando WebServer
+
+Instalando LEMP
+
+apt-get install vim nginx php-fpm mariadb-server php-curl php-gd php-mysql php-cli php-imap
+php-ldap php-mbstring php-xml php-apcu php-xmlrpc
+
+Editar o arquivo de Pools do PHP
+
+/etc/php/7.0/fpm/pool.d/www.conf
+
+listen = 127.0.0.1:9000
+
+Editar arquivo php.ini
+
+/etc/php/7.0/fpm/php.ini
+
+descomentar a linha e adicionar 0
+
+cgi.fix_pathinfo=0
+
+Editar hosts do Nginx e incluir o host virtual do APP Web
+
+sudo vim /etc/nginx/sites-enabled/glpi
+
+server {
+         listen 80;
+         root /usr/share/nginx/html/glpi;
+         index index.php;
+         servername nomedodominio;
+
+        location / {try files $uri $uri/ index.php;}
+
+        #prise on charge PHP
+        location ~ \.php$ {
+        fastcgi_pass 127.0.0.1:9000;
+        fastcgi_index index.php;
+        include /etc/nginx/fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        include fastcgi_params;
+        fastcgi_param SERVER_NAME $host;
+          }
+}
+
+Reiniciando servicos web
+
+sudo systemctl restart nginx
+sudo systemctl restart php7.0-fpm
+
+Baixando GlPI
+
+wget https://github.com/glpi-project/glpi/releases/download/9.1.6/glpi-9.1.6.tgz
+
+Dando permissões na pasta
+
+sudo chown -R www-data:www-data /usr/share/nginx/html/glpi
+sudo chown -R 755 /usr/share/nginx/html/glpi
+sudo chown -R 755 /usr/share/nginx/html/glpi/config
+sudo chown -R 755 /usr/share/nginx/html/glpi/files
+sudo chown -R 755 /usr/share/nginx/html/glpi/plugins
+
+Reiniciando servicos web
+
+sudo systemctl restart nginx
+sudo systemctl restart php7.0-fpm
+
+Criando database 
+
+Fazendo login
+mysql -uroot -p
+
+create database glpi;
+grant all privileges on glpi.* to glpi'@'localhost identified by 'schoolofnet';
+flush privileges;
+
+Instalando Graylog
+
+Instalando Java
+
+apt-get install default-jre
+
+Instalando Elastic Search
+
+wget https://download.elastic.co/elasticsearch/release/org/elasticsearch/distribution/deb/elasticsearch/2.3.1/elasticsearch-2.3.1.deb
+dpkg -i elasticsearch-2.3.1.deb
+systemctl enable elasticsearch.service
+
+Configurar Elastic Search
+
+vim /etc/elasticsearch/elasticsearch.yml
+
+Descomentar a linha e adicionar
+
+cluster.name: graylog
+
+sudo systemctl start elasticsearch
+
+Configurando MongoDB
+
+Adicionando chaves
+sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv EA312927
+
+Adicionando repositorio
+
+echo "deb http://repo.mongodb.org/apt/ubuntu xenial/mongodb-org/3.2 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-3.2.list
+sudo apt-get update
+
+Instalando Mongodb
+
+sudo apt-get install -y mongodb-org
+
+sudo vim /etc/systemd/mongodb.service
+
+[Unit]
+Description=High Performance, schema-free document-oriented database
+After=network.target
+
+[Service]
+User=mongodb
+ExecStart=/usr/bin/mongod --quiet --config /etc/mongod.conf
+
+[Install]
+Wantedby=multi-user.target
+
+sudo systemctl start mongod
+sudo systemctl enable mongodb
+
+Instalando Graylog Server
+
+wget https://packages.graylog2.org/repo/packages/graylog-2.2-repository_latest.deb
+sudo dpkg -i graylog-2.2-repository_latest.deb
+sudo apt-get update
+sudo apt-get install graylog-server
+sudo systemctl enable graylog-server.service
+
+Configurando Graylog
+
+sudo apt install pwgen
+ sudo sed -i -e "s/root_password_sha2 =.*/root_password_sha2 = $(echo -n 'password' | shasum -a 256 | cut -d' ' -f1)/" /etc/graylog/server/server.conf
+
+sudo vim /etc/graylog/server/server.conf
+
+Editar as linhas:
+...
+rest_listen_uri = http://your_server_ip_or_domain:9000/api/
+
+...
+web_listen_uri = http://your_server_ip_or_domain:9000/
+
+sudo systemctl restart graylog-server
+
+...
+
+
+
+
+
+
+
+        
